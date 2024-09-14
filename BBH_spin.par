@@ -1,0 +1,288 @@
+#------------------------------------------------------------------------------
+#   Aspectos Físicos de la simulación
+#------------------------------------------------------------------------------
+#   Se realizara la simulación de la colision frontal de dos agujeros negros
+#                      con los siguientes parametros:	 
+#------------------------------------------------------------------------------
+#   Masas (en masas solares 1 M = 1.98847e30 kg )
+#   Relación de masas q = mp/mm, con mp la masa mayor y mm la masa menor
+#    en este caso mp = 36.0 y mm = 29.0. Escalamos el sistema tal que M=mp+mm=1
+#------------------------------------------------------------------------------
+q    =  36.0/29.0              # Relación de masas
+M    =  1.0                    # Masa total
+chip =  0.0                    # Componente z del vector sin espín para mp 
+chim =  0.0                    # Componente z del vector sin espín para mm
+Pr   = -0.00084541526517121;   # Momento lineal radial
+Pphi =  0.09530152296974252;   #Momento angular 
+#------------------------------------------------------------------------------
+#  Distancia entre masas (en masas solares 1 M = 1476.66 m = 1.476 km ) 
+D = 
+#------------------------------------------------------------------------------
+#   Tiempo total de colisión (en masa solares 1 M = 4.925e−6 s)
+t =
+#-----------------------------------------------------------------------------------
+# Valores reescalados del sistema
+#----------------------------------------------------------------------------------------
+#Masas de los agujeros negros. 
+mp = M*q/(1+q)
+mm = M*1/(1+q)
+
+#Posiciones de los agujeros negros, considerando el Com en el origen. 
+xp =  D*mm 
+xm = -D*mp 
+
+#Momentos angulares (a=chi*m**2 ):
+Spx = 0.;
+Spy = 0.;
+Spz = chip*mp**2
+
+Smx = 0.;
+Smy = 0.;
+Smz = chim*mm**2 
+
+#Momentos lineales
+Ppx = Pr
+Ppy = Py
+Ppz = 0
+
+Pmx = -Ppx
+Pmy = -Ppy
+Pmz = -Ppz
+
+#------------------------------------------------------------------------------
+#   Parametros de Cactus:
+#------------------------------------------------------------------------------
+# Definimos el nombre de la simulación, la tomara de Simfactory
+Cactus::cctk_run_title      = $parfile 
+
+# Se muestran todas las alertas de peligro.
+Cactus::cctk_full_warnings  = yes 
+
+#Especificamos al tiempo como el parametro de finalización de la simualción.
+Cactus::terminate           = time
+#Colocamos el número de iteraciones 
+Cactus::cctk_final_time     = $t   
+
+
+#---------------------------------------------------------------------------------
+# Estructura de la malla
+#---------------------------------------------------------------------------------
+# Thorns necesarias
+#----------------------------------------------------------------------------------
+#Especifican las fronteras y las estructura de la malla
+ActiveThorns = "Boundary CartGrid3D CoordBase"
+
+#Permiten definir simetrías en el dominio computacional
+ActiveThorns = " ReflectionSymmetry SymBase"
+ActiveThorns = "RotatingSymmetry180"
+
+#Permite crear superficies esfericas para AHFinder y para Weyl4
+AvtiveThorns = 
+
+#Carpet permite controlar aspectos de la malla para incluir ADM y la programación en paralelo 
+
+ActiveThorns = "Carpet"
+#---------------------------------------------------------------------
+
+#El tamaño del dominio computacional esta en función del valor maximo y minimo 
+CoordBase::damainsize = "minmax"
+#Valores maximos y minimos en cada coordenada
+CoordBase::xmax = 
+CoordBase::ymax = 
+CoordBase::zmax = 
+CoordBase::xmin = 
+CoordBase::ymin = 
+CoordBase::zmin = 
+
+#Espaciamiento de las malla
+CoordBase::spacing = "gridspacing"
+#Tamaño del espaciamiento 
+CoordBase::dx = 
+CoordBase::dy = 
+CoordBase::dz = 
+
+
+
+#------------------------------------------------------------------------------
+# Condiciones iniciales:
+#------------------------------------------------------------------------------
+# Thorns necesarias
+ActiveThorns = "ADMCoupling ADMMacros CoordGauge SpaceMask StaticConformal TmunuBase"
+ActiveThorns = "TwoPunctures"
+#-------------------------------------------------------------------------------
+# ADM
+#-------------------------------------------------------------------------------
+ADMMacros::spatial_order     = 4
+
+ADMBase::metric_type         = "physical"
+
+ADMBase::initial_data        = "twopunctures"
+ADMBase::initial_lapse       = "twopunctures-averaged"
+ADMBase::initial_shift       = "zero"
+ADMBase::initial_dtlapse     = "zero"
+ADMBase::initial_dtshift     = "zero"
+ 
+#Se utilizan en AHFinders
+ADMBase::metric_timelevels = 3  
+ 
+#------------------------------------------------------------------------------
+# Two Punctures
+#------------------------------------------------------------------------------
+#Coordenadas para los "pinchazos", separación dada por par_b
+TwoPunctures::par_b  =  
+
+#Descripción del agujero negro con masa mayor:
+#Masa 
+TwoPunctures::par_m_plus  = mp
+#Momento lineal
+TwoPunctures::par_P_plus [1]  = Ppx  
+TwoPunctures::par_P_plus [2]  = Ppy
+TwoPunctures::par_P_plus [3]  = Ppz
+#Momento angular
+TwoPunctures::par_S_plus [1]  = Spx
+TwoPunctures::par_S_plus [2]  = Spy
+TwoPunctures::par_S_plus [3]  = Spz
+  
+
+#Descripción del agujero negro con masa menor:
+#Masa 
+TwoPunctures::par_m_plus  = mm
+#Momento lineal
+TwoPunctures::par_P_plus [1]  = Pmx
+TwoPunctures::par_P_plus [2]  = Pmy
+TwoPunctures::par_P_plus [3]  = Pmz
+#Momento angular 
+TwoPunctures::par_S_plus [1]  = Smx
+TwoPunctures::par_S_plus [2]  = Smy 
+TwoPunctures::par_S_plus [3]  = Smz
+
+
+#-------------------------------------------------------------------------------------------------
+# Métodos evolutivos:
+#--------------------------------------------------------------------------------------------------
+# Thorns necesarias:
+#-------------------------------------------------------------------------------------------------
+ActiveThorns = "ML_BSSN ML_BSSN_Helper NewRad"
+#Evolucionador temporal 
+ActiveThorns = "Mol Time"
+
+#Establecemos el método de evolución utilizado en la variables ADM:
+
+ADMBase::evolution_method           = "ML_BSSN"
+ADMBase::lapse_evolution_method     = "ML_BSSN"
+ADMBase::shift_evolution_method     = "ML_BSSN"
+ADMBase::dtlapse_evolution_method   = "ML_BSSN"
+ADMBase::dtshift_evolution_method   = "ML_BSSN"
+
+#Establecemos valores para los parametros de norma
+
+ML_BSSN::harmonicN           = 1     #1+log
+ML_BSSN::harmonicF           = 2.0   #1+log
+ML_BSSN::LapseAdvectionCoeff = 1.0
+
+ML_BSSN::ShiftGammaCoeff     = 0.75
+ML_BSSN::BetaDriver          = 1.0   
+ML_BSSN::ShiftAdvectionCoeff = 1.0   
+
+ML_BSSN::MinimumLapse        = 1.0e-8
+
+ML_BSSN::my_initial_boundary_condition = " extrapolate - gammas "
+ML_BSSN::my_rhs_boundary_condition     = " NewRad "
+Boundary :: radpower                   = 2
+
+#Se utiliza el método de lineas con un integrador de Runge-Kutta de 4to orden 
+MoL::ODE_Method             = "RK4"
+MoL::MoL_Intermediate_Steps = 4 
+MoL::MoL_Num_Scratch_Levels = 1
+
+#Se necesita incluir métodos disipativos
+
+
+
+
+
+#------------------------------------------------------------------------------
+# Datos de salida:
+#------------------------------------------------------------------------------
+# Espinas necesarias 
+#------------------------------------------------------------------------------
+ActiveThorns = "CarpetIOBasic"
+ActiveThorns = "CarpetIOScalar"
+ActiveThorns = "CarpetIOASCII"
+Activethorns = "CarpetIOHDF5"
+#------------------------------------------------------------------------------
+IOBasic::outInfo_every          = 128
+IOBasic::outInfo_reductions     = "norm2"
+IOBasic::outInfo_vars           = "
+        Carpet::physical_time_per_hour
+        ML_ADMConstraints::H
+"
+
+IO::out_dir = $parfile
+
+# for scalar reductions of 3D grid functions
+IOScalar::one_file_per_group    = yes
+IOScalar::outScalar_every       = 128
+IOScalar::outScalar_vars        = "
+        ADMBase::lapse
+"
+
+IOASCII::one_file_per_group     = yes
+
+IOASCII::output_symmetry_points = no
+IOASCII::out3D_ghosts           = no
+
+# # output just at one point (0D)
+# IOASCII::out0D_every = 128
+# IOASCII::out0D_vars  = "
+#         ADMBase::metric
+#         ADMBase::curv
+#         ADMBase::lapse
+#         ADMBase::shift
+#         WEYLSCAL4::Psi4r
+#         WEYLSCAL4::Psi4i
+#         ML_ADMConstraints::ML_Ham
+#         ML_ADMConstraints::ML_mom
+# "
+
+IOASCII::out1D_every = 128
+IOASCII::out1D_vars  = "
+        ADMBase::metric
+        ADMBase::curv
+        ADMBase::lapse
+        ADMBase::shift
+"
+
+IOHDF5::use_checksums          = yes
+IOHDF5::compression_level      = 1
+IOHDF5::one_file_per_group     = yes
+
+IOHDF5::output_symmetry_points = no
+IOHDF5::out3D_ghosts           = no
+
+IOHDF5::out2D_every            = 512
+IOHDF5::out2D_vars             = "
+        ADMBase::metric
+        ADMBase::curv
+        ADMBase::lapse
+        ADMBase::shift
+        WEYLSCAL4::Psi4r
+        WEYLSCAL4::Psi4i
+        ML_ADMConstraints::ML_Ham
+        ML_ADMConstraints::ML_mom
+"
+
+# for 3D HDF5 output
+IOHDF5::out3D_every            = 512
+IOHDF5::out3D_vars             = "
+        WEYLSCAL4::Psi4r
+"
+
+
+
+
+
+
+
+
+
