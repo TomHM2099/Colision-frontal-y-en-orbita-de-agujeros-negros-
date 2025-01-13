@@ -1,3 +1,4 @@
+#!bin/bash/env python 
 #------------------------------------------------------------------------------
 #   Aspectos Físicos de la simulación
 #------------------------------------------------------------------------------
@@ -10,8 +11,8 @@
 #------------------------------------------------------------------------------
 q    =  36.0/29.0              # Relación de masas
 M    =  1.0                    # Masa total
-chip =  0.0                    # Componente z del vector sin espín para mp 
-chim =  0.0                    # Componente z del vector sin espín para mm
+chip =  0.31                    # Componente z del vector sin espín para mp 
+chim = -0.46                   # Componente z del vector sin espín para mm
 Pr   = -0.00084541526517121;   # Momento lineal radial
 Pphi =  0.09530152296974252;   #Momento angular 
 #------------------------------------------------------------------------------
@@ -49,12 +50,28 @@ Pmx = -Ppx
 Pmy = -Ppy
 Pmz = -Ppz
 
+#Se almacenan las variables para despues modificar el archivo
+
+local_var = locals()
+col_width = 0
+for key,val in sorted(local_var.items()):
+    if isinstance(val, (int, float, complex, str)):
+        col_width = max(len(str(key)), col_width)
+
+var_settings = []
+for key,val in sorted(local_var.items()):
+    if isinstance(val, (int, float, complex, str)):
+        var_settings = var_settings + ["# {0}{1} = {2}".format(key," "*(col_width-len(key)),val)]
+
+var_settings_str = "\n".join(var_settings)
+
+
+#La cadena(string) lines se modifican si se cambian las variables anteiores
+lines = """
+$var_settings_str 
 #------------------------------------------------------------------------------
 #   Parametros de Cactus:
 #------------------------------------------------------------------------------
-# Definimos el nombre de la simulación, la tomara de Simfactory
-Cactus::cctk_run_title      = $parfile 
-
 # Se muestran todas las alertas de peligro.
 Cactus::cctk_full_warnings  = yes 
 
@@ -77,7 +94,7 @@ ActiveThorns = " ReflectionSymmetry SymBase"
 ActiveThorns = "RotatingSymmetry180"
 
 #Permite crear superficies esfericas para AHFinder y para Weyl4
-AvtiveThorns = 
+AvtiveThorns = "SphericalSurface"
 
 #Carpet permite controlar aspectos de la malla para incluir ADM y la programación en paralelo 
 
@@ -96,10 +113,23 @@ CoordBase::zmin =
 
 #Espaciamiento de las malla
 CoordBase::spacing = "gridspacing"
+
 #Tamaño del espaciamiento 
 CoordBase::dx = 
 CoordBase::dy = 
 CoordBase::dz = 
+
+#Cantidad de puntos en la frontera:
+
+#Parte inferior
+CoordBase::boundary_size_lower_x = 
+CoordBase::boundary_size_lower_y =
+CoordBase::boundary_size_lower_z =
+
+#Parte superior
+CoordBase::boundary_size_upper_x = 
+CoordBase::boundary_size_upper_y = 
+CoordBase::boundary_size_upper_z = 
 
 
 
@@ -133,28 +163,28 @@ TwoPunctures::par_b  =
 
 #Descripción del agujero negro con masa mayor:
 #Masa 
-TwoPunctures::par_m_plus  = mp
+TwoPunctures::par_m_plus  = $mp
 #Momento lineal
-TwoPunctures::par_P_plus [1]  = Ppx  
-TwoPunctures::par_P_plus [2]  = Ppy
-TwoPunctures::par_P_plus [3]  = Ppz
+TwoPunctures::par_P_plus [1]  = $Ppx  
+TwoPunctures::par_P_plus [2]  = $Ppy
+TwoPunctures::par_P_plus [3]  = $Ppz
 #Momento angular
-TwoPunctures::par_S_plus [1]  = Spx
-TwoPunctures::par_S_plus [2]  = Spy
-TwoPunctures::par_S_plus [3]  = Spz
+TwoPunctures::par_S_plus [1]  = $Spx
+TwoPunctures::par_S_plus [2]  = $Spy
+TwoPunctures::par_S_plus [3]  = $Spz
   
 
 #Descripción del agujero negro con masa menor:
 #Masa 
-TwoPunctures::par_m_plus  = mm
+TwoPunctures::par_m_plus  = $mm
 #Momento lineal
-TwoPunctures::par_P_plus [1]  = Pmx
-TwoPunctures::par_P_plus [2]  = Pmy
-TwoPunctures::par_P_plus [3]  = Pmz
+TwoPunctures::par_P_plus [1]  = $Pmx
+TwoPunctures::par_P_plus [2]  = $Pmy
+TwoPunctures::par_P_plus [3]  = $Pmz
 #Momento angular 
-TwoPunctures::par_S_plus [1]  = Smx
-TwoPunctures::par_S_plus [2]  = Smy 
-TwoPunctures::par_S_plus [3]  = Smz
+TwoPunctures::par_S_plus [1]  = $Smx
+TwoPunctures::par_S_plus [2]  = $Smy 
+TwoPunctures::par_S_plus [3]  = $Smz
 
 
 #-------------------------------------------------------------------------------------------------
@@ -198,9 +228,6 @@ MoL::MoL_Num_Scratch_Levels = 1
 #Se necesita incluir métodos disipativos
 
 
-
-
-
 #------------------------------------------------------------------------------
 # Datos de salida:
 #------------------------------------------------------------------------------
@@ -215,8 +242,7 @@ IOBasic::outInfo_every          = 128
 IOBasic::outInfo_reductions     = "norm2"
 IOBasic::outInfo_vars           = "
         Carpet::physical_time_per_hour
-        ML_ADMConstraints::H
-"
+        ML_ADMConstraints::H "
 
 IO::out_dir = $parfile
 
@@ -224,8 +250,7 @@ IO::out_dir = $parfile
 IOScalar::one_file_per_group    = yes
 IOScalar::outScalar_every       = 128
 IOScalar::outScalar_vars        = "
-        ADMBase::lapse
-"
+        ADMBase::laps "
 
 IOASCII::one_file_per_group     = yes
 
@@ -234,7 +259,7 @@ IOASCII::out3D_ghosts           = no
 
 # # output just at one point (0D)
 # IOASCII::out0D_every = 128
-# IOASCII::out0D_vars  = "
+# IOASCII::out0D_vars  = " "
 #         ADMBase::metric
 #         ADMBase::curv
 #         ADMBase::lapse
@@ -242,16 +267,14 @@ IOASCII::out3D_ghosts           = no
 #         WEYLSCAL4::Psi4r
 #         WEYLSCAL4::Psi4i
 #         ML_ADMConstraints::ML_Ham
-#         ML_ADMConstraints::ML_mom
-# "
+#         ML_ADMConstraints::ML_mom "
 
 IOASCII::out1D_every = 128
 IOASCII::out1D_vars  = "
         ADMBase::metric
         ADMBase::curv
         ADMBase::lapse
-        ADMBase::shift
-"
+        ADMBase::shift  "
 
 IOHDF5::use_checksums          = yes
 IOHDF5::compression_level      = 1
@@ -275,11 +298,8 @@ IOHDF5::out2D_vars             = "
 # for 3D HDF5 output
 IOHDF5::out3D_every            = 512
 IOHDF5::out3D_vars             = "
-        WEYLSCAL4::Psi4r
-"
-
-
-
+        WEYLSCAL4::Psi4r "
+"""
 
 
 
