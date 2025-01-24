@@ -124,7 +124,7 @@ ActiveThorns = "CarpetRegrid2"
 ActiveThorns = "CarpetMask"
 
 #Permite crear superficies esfericas para AHFinder y para Weyl4
-AvtiveThorns = "SphericalSurface "
+ActiveThorns = "SphericalSurface "
 
 #---------------------------------------------------------------------
 #Se le especifica a Carpet que se utilizara coordbase para definir la extension
