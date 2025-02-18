@@ -15,19 +15,28 @@ from string import Template
 #    en este caso mp = 36.0 y mm = 29.0. Escalamos el sistema tal que M = mp+mm=1
 #------------------------------------------------------------------------------
 q    =  36.0/29.0              # Relación de masas
-M    =  1.0                    # Masa total
-# momentos angulares:
+M    =  1.0                    # Masa total (En unidades donde M_tot=1)
+
+#momentos angulares(colision frontal):
+chip = 0.0
+chim = 0.0
+
+# momentos angulares(colison orbital):
 chip =  0.31 #0.0                  # Componente z del vector sin espín para mp 
 chim = -0.46 #0.0                  # Componente z del vector sin espín para mm
-# momentos lineales:
+
+# momentos lineales (Colision frontal)
+#Pr   = 0.0
+#Pphi = 0.0
+
+# momentos lineales (Colosion en orbita):
 Pr   = -0.00084541526517121;   # Momento lineal radial
 Pphi =  0.09530152296974252;   #Momento angular 
+
+
 #------------------------------------------------------------------------------
 #  Distancia entre masas (en masas solares 1 M = 1476.66 m = 1.476 km ) 
-D = 10 
-#------------------------------------------------------------------------------
-#   Tiempo total de colisión (en masa solares 1 M = 4.925e−6 s)
-t =
+D = 10.0 
 #-----------------------------------------------------------------------------------
 # Valores reescalados del sistema
 #----------------------------------------------------------------------------------------
@@ -35,9 +44,21 @@ t =
 mp = M*q/(1+q)
 mm = M*1/(1+q)
 
-#Posiciones de los agujeros negros, considerando el Com en el origen. 
+#Posiciones de los agujeros negros, considerando el Com(center of mass) en el origen. 
 xp =  D*mm 
 xm = -D*mp 
+
+#Localización de los pinchazos
+half_D = D/2.0
+
+#desplazamiento central center_offset
+center_offset = xp -half_D
+
+#valores esperados para el horizonte aparente utilizada en AHFinderDirect
+#suponiendo el caso de giro maximo a=M, con a el espín del agujero negro
+ar = mp*1.0
+am = mm*1.0
+
 
 #Momentos angulares (a=chi*m**2 ):
 Spx = 0.;
@@ -56,7 +77,6 @@ Ppz = 0
 Pmx = -Ppx
 Pmy = -Ppy
 Pmz = -Ppz
-
 #-------------------------------------------------------------------------------
 # Datos de la malla:
 #-------------------------------------------------------------------------------
@@ -64,12 +84,28 @@ Pmz = -Ppz
 dr = 2.0
 
 #Factor de Courant 
-dt0 = 
+dt0 = 0.50
  
 #extensión de la malla
-extension = 
+extension = 120.0
 
+#--------------------------------------------------------------------------------
+# Valores temporales:
+#--------------------------------------------------------------------------------
+#   Tiempo total de colisión (en masa solares 1 M = 4.925e−6 s)
 
+# tiempo esperado de la fusión, en el caso orbital 
+expected_merger = 1000.0
+#tiempo despues de la fusión:
+time_after_merger = 200
+#tamaño de la onda
+waveform_length = expected_merger + time_after_merger
+# detector más alejado 
+outermost_detector = 100.0
+#tiempo final 
+final_time = waveform_length + outermost_detector
+#tiempo para buscar el horizonte aparente del agujero negro resultante
+$find_ah = expected_merger-200
 
 
 #Se almacenan las variables para despues modificar el archivo
@@ -100,8 +136,15 @@ Cactus::cctk_full_warnings              = yes
 #Especificamos al tiempo como el parametro de finalización de la simualción.
 Cactus::terminate                       = time
 #Colocamos el número de iteraciones 
-Cactus::cctk_final_time                 = $t_final    
-
+Cactus::cctk_final_time                 = $final_time
+#---------------------------------------------------------------------------------
+# Modulos basicos:
+#---------------------------------------------------------------------------------
+ActiveThorns = "AEILocalInterp"
+ActiveThorns = "Fortran GSL HDF5"
+ActiveThorns = "GenericFD"
+ActiveThorns = "LocalInterp LoopControl Slab"
+ActiveThorns = "InitBase IOUtil"
 
 #---------------------------------------------------------------------------------
 # Estructura de la malla
@@ -110,7 +153,6 @@ Cactus::cctk_final_time                 = $t_final
 #----------------------------------------------------------------------------------
 #Carpet es el controlador a utilizar  
 ActiveThorns = "Carpet CarpetLib CarpetInterp CarpetReduce CarpetSlab"
-
 #Especifican las fronteras y las estructura de la malla
 ActiveThorns = "Boundary CartGrid3D CoordBase"
 
@@ -127,7 +169,7 @@ ActiveThorns = "CarpetMask"
 ActiveThorns = "SphericalSurface "
 
 #---------------------------------------------------------------------
-#Se le especifica a Carpet que se utilizara coordbase para definir la extension
+#Se le especifica a Carpet que utilizara coordbase para definir la extension
 
 Carpet::domain_from_coordbase           = "yes" 
 CartGrid3D::type                        = "coordbase"
@@ -168,7 +210,7 @@ CoordBase::boundary_size_upper_y        = 3
 CoordBase::boundary_size_upper_z        = 3
 
 #Simetrías
-
+#Hacemos una reflección en el eje z
 ReflectionSymmetry::reflection_z        = "yes"
 ReflectionSymmetry::reflection_y        = "no"
 ReflectionSymmetry::reflection_x        = "no"
@@ -206,6 +248,7 @@ Carpet::init_3_timelevels               = "no"
 #Detectar elementos no inicializados de la malla 
 Carpet::poison_new_timelevels           = "yes"
 Carpet::check_for_poison                = "no" 
+
 CarpetLib::poison_memory                = "yes"
 CarpetLib::poison_value                 = 114
 
@@ -218,21 +261,22 @@ CarperRegrid2::symmetry_rotating180     = "yes"
 
 
 #--------------------------------------------------------------------------------
-# AMR 
+# Refinamiento adaptativo de Malla
 #--------------------------------------------------------------------------------
 
-#Número de refinamientos
-Carpet::max_refinement_levels           = 9
-Carpet::time_refinement_factors         = "[1,1,2,4,8,16,32,64,128,256]"
+#Número de refinamientos temporales 
+Carpet::max_refinement_levels           = 10
+#Valores utilizados para los 10 refinamientos
+Carpet::time_refinement_factors         = "[1,2,4,8,16,32,64,128,256,512]"
 
 #De acuerdo a 2**(max_refinament_levels-2)
 CarpetRigrid2::regrid_every             = 32 
 
+#Refinamientos espaciales
 CarpetRigrid2::num_centres              = 2
 
-CarpetRegrid2::num_levels_1             = $rlsp
+CarpetRegrid2::num_levels_1             = 7
 CarpetRegrid2::position_x_1             = $xp
-CarpetRegrid2::radius_1                 = $levelsp
 CarpetRegrid2::radius_1[ 1]             =  64.0
 CarpetRegrid2::radius_1[ 2]             =  16.0
 CarpetRegrid2::radius_1[ 3]             =   8.0
@@ -242,10 +286,9 @@ CarpetRegrid2::radius_1[ 6]             =   1.0
 CarpetRegrid2::movement_threshold_1     =   0.16
 
 
-CarpetRegrid2::num_levels_2             = $rlsm
+CarpetRegrid2::num_levels_2             = 7
 CarpetRegrid2::position_x_2             = $xm
-CarpetRegrid2::radius_2                 = $levelsm
-arpetRegrid2::radius_2[ 1]              =  64.0
+CarpetRegrid2::radius_2[ 1]             =  64.0
 CarpetRegrid2::radius_2[ 2]             =  16.0
 CarpetRegrid2::radius_2[ 3]             =   8.0
 CarpetRegrid2::radius_2[ 4]             =   4.0
@@ -256,14 +299,14 @@ CarpetRegrid2::movement_threshold_2     =   0.16
 
 #Excluir el interior 
 
-CarpetMask::excluded_surface       [0] = 0
-CarpetMask::excluded_surface_factor[0] = 1.0
+CarpetMask::excluded_surface       [0]  = 0
+CarpetMask::excluded_surface_factor[0]  = 1.0
 
-CarpetMask::excluded_surface       [1] = 1
-CarpetMask::excluded_surface_factor[1] = 1.0
+CarpetMask::excluded_surface       [1]  = 1
+CarpetMask::excluded_surface_factor[1]  = 1.0
 
-CarpetMask::excluded_surface       [2] = 2
-CarpetMask::excluded_surface_factor[2] = 1.0
+CarpetMask::excluded_surface       [2]  = 2
+CarpetMask::excluded_surface_factor[2]  = 1.0
 
 #--------------------------------------------------------------------------------
 # Superficie esfericas
@@ -300,12 +343,14 @@ ActiveThornes = "Time TerminationTrigger"
 #------------------------------------------------------------------------------
 
 #Pasos temporales:
-time::timestep_method                     = "courant_static"
-time::dtfac                               = $dt0
+time::timestep_method                   = "courant_static"
+time::dtfac                             = $dt
 
-# Maximo tiempo de la simulación:
-TerminationTrigger::max_walltime          =
-TerminationTrigger::on_remaining_walltime =
+#Revisar 
+# Maximo tiempo de la simulación(en horas):
+#TerminationTrigger::max_walltime         =
+#Cuando activar la terminación de la simulación(en minutos): 
+#TerminationTrigger::on_remaining_walltime=
  
 
 #------------------------------------------------------------------------------
@@ -317,49 +362,62 @@ ActiveThorns = "TwoPunctures"
 #-------------------------------------------------------------------------------
 # ADM
 #-------------------------------------------------------------------------------
-ADMMacros::spatial_order     = 4
+InitBase::                              = "init_all_levels"
+ADMMacros::spatial_order                = 4
 
-ADMBase::metric_type         = "physical"
+ADMBase::metric_type                    = "physical"
 
-ADMBase::initial_data        = "twopunctures"
-ADMBase::initial_lapse       = "twopunctures-averaged"
-ADMBase::initial_shift       = "zero"
-ADMBase::initial_dtlapse     = "zero"
-ADMBase::initial_dtshift     = "zero"
+ADMBase::initial_data                   = "twopunctures"
+ADMBase::initial_lapse                  = "twopunctures-averaged"
+ADMBase::initial_shift                  = "zero"
+ADMBase::initial_dtlapse                = "zero"
+ADMBase::initial_dtshift                = "zero"
  
-#Se utilizan en AHFinders
-ADMBase::metric_timelevels = 3  
+#Se utilizan en AHFindersDirect
+ADMBase::metric_timelevels              = 3  
  
 #------------------------------------------------------------------------------
 # Two Punctures
 #------------------------------------------------------------------------------
 #Coordenadas para los "pinchazos", separación dada por par_b
-TwoPunctures::par_b  =  
+TwoPunctures::par_b                     =  $D
+TwoPunctures::center_offset[0]          = $center_offset
 
 #Descripción del agujero negro con masa mayor:
 #Masa 
-TwoPunctures::par_m_plus  = $mp
+TwoPunctures::target_M_plus             = $mp
+TwoPunctures::par_m_plus                = $mp
 #Momento lineal
-TwoPunctures::par_P_plus [1]  = $Ppx  
-TwoPunctures::par_P_plus [2]  = $Ppy
-TwoPunctures::par_P_plus [3]  = $Ppz
+TwoPunctures::par_P_plus [1]            = $Ppx  
+TwoPunctures::par_P_plus [2]            = $Ppy
+TwoPunctures::par_P_plus [3]            = $Ppz
 #Momento angular
-TwoPunctures::par_S_plus [1]  = $Spx
-TwoPunctures::par_S_plus [2]  = $Spy
-TwoPunctures::par_S_plus [3]  = $Spz
+TwoPunctures::par_S_plus [1]            = $Spx
+TwoPunctures::par_S_plus [2]            = $Spy
+TwoPunctures::par_S_plus [3]            = $Spz
   
 
 #Descripción del agujero negro con masa menor:
 #Masa 
-TwoPunctures::par_m_plus  = $mm
+TwoPunctures::target_M_minus            = $mm
+TwoPunctures::par_m_minus               = $mm
 #Momento lineal
-TwoPunctures::par_P_plus [1]  = $Pmx
-TwoPunctures::par_P_plus [2]  = $Pmy
-TwoPunctures::par_P_plus [3]  = $Pmz
+TwoPunctures::par_P_minus [1]           = $Pmx
+TwoPunctures::par_P_minus [2]           = $Pmy
+TwoPunctures::par_P_minus [3]           = $Pmz
 #Momento angular 
-TwoPunctures::par_S_plus [1]  = $Smx
-TwoPunctures::par_S_plus [2]  = $Smy 
-TwoPunctures::par_S_plus [3]  = $Smz
+TwoPunctures::par_S_minus [1]           = $Smx
+TwoPunctures::par_S_minus [2]           = $Smy 
+TwoPunctures::par_S_minus [3]           = $Smz
+
+# Un valor pequeño para suavizar las singularidades en los lugares de los pinchazos  
+TwoPunctures::TP_epsilon                = 1e-6
+
+#Número pequeño para evitar que haya Nans cerca o en los pinchazos
+TwoPunctures::Tp_Tiny                   = 1.0e-2
+
+TwoPunctures::give_bare_mass            = no
+TwoPunctures::grid_setup_method         = "evaluation"
 
 #-------------------------------------------------------------------------------------------------
 # Métodos evolutivos:
@@ -375,6 +433,9 @@ ActiveThorns = "PunctureTracker"
 
 #Evolucionador temporal 
 ActiveThorns = "Mol Time"
+
+#Disipación numérica
+ActiveThorns = "Dissipation"
 
 #Establecemos el método de evolución utilizado en la variables ADM:
 
@@ -397,7 +458,7 @@ ML_BSSN::ShiftAdvectionCoeff            = 1.0
 ML_BSSN::MinimumLapse                   = 1.0e-8
 
 ML_BSSN::my_initial_boundary_condition  = " extrapolate - gammas "
-ML_BSSN::my_rhs_boundary_condition      = " NewRad "
+ML_BSSN::my_rhs_boundary_condition      = "NewRad"
 Boundary :: radpower                    = 2
 
 #Se utiliza el método de lineas con un integrador de Runge-Kutta de 4to orden 
@@ -406,9 +467,21 @@ MoL::MoL_Intermediate_Steps             = 4
 MoL::MoL_Num_Scratch_Levels             = 1
 
 #Se necesita incluir métodos disipativos
+#El orden de la disipación p=5 necesita al menos (p+1)/2 zonas fantasmas, en este caso 3
+Dissipation::order                      = 5
+Dissipation::vars                       = "
+        				ML_BSSN::ML_log_confac
+        				ML_BSSN::ML_metric
+        				ML_BSSN::ML_trace_curv
+        				ML_BSSN::ML_curv
+        				ML_BSSN::ML_Gamma
+        				ML_BSSN::ML_lapse
+        				ML_BSSN::ML_shift
+        				ML_BSSN::ML_dtlapse
+        				ML_BSSN::ML_dtshift
+"
 
 # Seguimientos de los agujeros negros 
-
 # Agujero negro mayor
 CarpetTracker::surface                      [0] = 0
 PunctureTracker::track                      [0] = yes
@@ -421,26 +494,149 @@ PunctureTracker::track                      [1] = yes
 PunctureTracker::initial_x                  [1] = $xm
 PunctureTracker::which_surface_to_store_info[1] = 1
 
+#Se utiliza SummationByParts 
+ActiveThorns                            = "SummationByParts"
+SummationByParts::order                 = 4
 
-#------------------------------------------------------------------------------
-# Checador de Nans (valores no numericos)
-#------------------------------------------------------------------------------
+
+#--------------------------------------------------------------------------------
+# Analisis
+#--------------------------------------------------------------------------------
 # Espinas necesarias:
-#------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
+ActiveThorns = "AHFinderDirect QuasiLocalMeasures WeylScal4 Multipole"
+#--------------------------------------------------------------------------------
+
+#Valores Cuasilocales (masa,momentos lineales y angulares)
+#Evitamos la salida informacion detalla del modulo
+QuasiLocalMeasures::verbose             = "no"
+QuasiLocalMeasures::veryverbose         = "no"
+
+#Datos de la interpolación 
+QuasiLocalMeasures::interpolator        = "Lagrange polynomial interpolation" 
+QuasiLocalMeasures::interpolator_options= "order=4"
+QuasiLocalMeasures::spatial_order       = 4
+
+#información de las superficies:
+#número de superficies 
+QuasiLocalMeasures::num_surfaces         = 3
+
+#Indices de las superficies 
+QuasiLocalMeasures::surface_index  [0]   = 2
+QuasiLocalMeasures::surface_index  [1]   = 3
+QuasiLocalMeasures::surface_index  [2]   = 4
+
+
+#Escalar de Weyl Psi4
+WeylScal4::fd_order                      = "4th" 
+WeylScal4::calc_scalars                  = "psis"
+WeylScal4::calc_invariants               = "always"
+
+
+#Descomposición multipolar:
+Multipole::nradii                        = 3
+Multipole::out_every                     = 128
+
+#Radios de los detectores 
+Multipole::radius[0]                     = 60
+Multipole::radius[1]                     = 80
+Multipole::radius[2]                     = 100
+
+#configuraciones de angulos 
+Multipole::ntheta                        = 120
+Multipole::nphi                          = 240
+
+#Variable a descomponer en multipolos, en este caso el escalar complejor Psi
+Multipole::variables                     = "WeylScal4::Psi4r{sw=-2 cmplx='WeylScal4::Psi4i' name='Psi4'}"
+
+#Valores para los modos l y m
+Multipole::l_max                         = 4
+#Multipole::m_mode                       = 4
+
+#Horizontes aparentes:
+#configuraciones:
+AHFinderDirect::find_every                 = 128
+AHFinderDirect::output_h_every             = 0
+AHFinderDirect::verbose_level              = "Physical details"
+AHFinderDirect::move_origins               = "yes"
+
+AHFinderDirect::move_origins            = "yes"
+AHFinderDirect::reshape_while_moving    = "yes"
+AHFinderDirect::predict_origin_movement = "yes"
+
+AHFinderDirect::geometry_interpolator_name = "Lagrange polynomial interpolation"
+AHFinderDirect::geometry_interpolator_pars = "order=4"
+AHFinderDirect::surface_interpolator_name  = "Lagrange polynomial interpolation"
+AHFinderDirect::surface_interpolator_pars  = "order=4"
+
+#número de horizontes a buscar
+AHFinderDirect::N_horizons = 3
+
+
+AHFinderDirect::origin_x                             [1] = $xp
+AHFinderDirect::initial_guess__coord_sphere__x_center[1] = $xp
+AHFinderDirect::initial_guess__coord_sphere__radius  [1] = $rp
+AHFinderDirect::which_surface_to_store_info          [1] = 2
+AHFinderDirect::set_mask_for_individual_horizon      [1] = no
+AHFinderDirect::reset_horizon_after_not_finding      [1] = no
+AHFinderDirect::track_origin_from_grid_scalar        [1] = yes
+AHFinderDirect::track_origin_source_x                [1] = "PunctureTracker::pt_loc_x[0]"
+AHFinderDirect::track_origin_source_y                [1] = "PunctureTracker::pt_loc_y[0]"
+AHFinderDirect::track_origin_source_z                [1] = "PunctureTracker::pt_loc_z[0]"
+AHFinderDirect::max_allowable_horizon_radius         [1] = 3
+
+AHFinderDirect::origin_x                             [2] = $xm
+AHFinderDirect::initial_guess__coord_sphere__x_center[2] = $xm
+AHFinderDirect::initial_guess__coord_sphere__radius  [2] = $rm
+AHFinderDirect::which_surface_to_store_info          [2] = 3
+AHFinderDirect::set_mask_for_individual_horizon      [2] = no
+AHFinderDirect::reset_horizon_after_not_finding      [2] = no
+AHFinderDirect::track_origin_from_grid_scalar        [2] = yes
+AHFinderDirect::track_origin_source_x                [2] = "PunctureTracker::pt_loc_x[1]"
+AHFinderDirect::track_origin_source_y                [2] = "PunctureTracker::pt_loc_y[1]"
+AHFinderDirect::track_origin_source_z                [2] = "PunctureTracker::pt_loc_z[1]"
+AHFinderDirect::max_allowable_horizon_radius         [2] = 3
+
+AHFinderDirect::origin_x                             [3] = 0
+AHFinderDirect::find_after_individual_time           [3] = $find_ah
+AHFinderDirect::initial_guess__coord_sphere__x_center[3] = 0
+AHFinderDirect::initial_guess__coord_sphere__radius  [3] = 1.0
+AHFinderDirect::which_surface_to_store_info          [3] = 4
+AHFinderDirect::set_mask_for_individual_horizon      [3] = no
+AHFinderDirect::max_allowable_horizon_radius         [3] = 6
+
+
+#--------------------------------------------------------------------------------
+# Checador de Nans (valores no numericos)
+#--------------------------------------------------------------------------------
+# Espinas necesarias:
+#--------------------------------------------------------------------------------
 ActiveThorns = "NaNChecker"
-#------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
 NaNChecker::check_every                 = 512
 NaNChecker::action_if_found             = "termination"
+NaNChecker::verbose                     = "all"
 NaNChecker::check_vars                  = "
-	ADMBase::metric
-	ADMBase::curv
-	ADMBase::lapse
-	ADMBase::shift
+					ADMBase::metric
+					ADMBase::curv
+					ADMBase::lapse
+					ADMBase::shift
+					ADMBase::dtlapse
+            				ADMBase::dtshift
+					ML_BSSN::ML_log_confac
+            				ML_BSSN::ML_metric
+            				ML_BSSN::ML_trace_curv
+            				ML_BSSN::ML_curv
+            				ML_BSSN::ML_Gamma
+            				ML_BSSN::ML_lapse
+            				ML_BSSN::ML_shift
+            				ML_BSSN::ML_dtlapse
+			            	ML_BSSN::ML_dtshift
 "
 #------------------------------------------------------------------------------
 # Diagnostico de parametros:
 #------------------------------------------------------------------------------
-Carpet::output_time                     = 1024
+Carpet::output_timers_every             = 1024
 Carpet::storage_verbose                 = "no"
 Carpet::verbose                         = "no"
 Carpet::veryverbose                     = "no"
@@ -448,6 +644,7 @@ Carpet::veryverbose                     = "no"
 
 CarpetLib::output_bboxes                = "no"
 CarpetLib::print_memstats_every         = 1024
+CarpetLib::print_timestats_every        = 1024
 
 CarpetMask::verbose                     = "yes"
 CarpetReduce::verbose                   = "no"
@@ -472,47 +669,46 @@ ActiveThorns = "CarpetIOScalar"
 ActiveThorns = "CarpetIOASCII"
 Activethorns = "CarpetIOHDF5"
 #------------------------------------------------------------------------------
+#Directorio en donde se almacenaran los datos:
+IO::out_dir = "@SIMULATION_NAME@"
+
+IOScalar::one_file_per_group            = yes
+IOASCII::one_file_per_group             = yes
+IOHDF5::one_file_per_group              = yes
+
 IOBasic::outInfo_every          = 128
 IOBasic::outInfo_reductions     = "norm2"
 IOBasic::outInfo_vars           = "
         Carpet::physical_time_per_hour
-        ML_ADMConstraints::H "
+        ML_ADMConstraints::H
+"
 
-IO::out_dir = $parfile
-
-# for scalar reductions of 3D grid functions
 IOScalar::one_file_per_group    = yes
 IOScalar::outScalar_every       = 128
 IOScalar::outScalar_vars        = "
-        ADMBase::laps "
+        ADMBase::lapse
+"
 
-IOASCII::one_file_per_group     = yes
+IOASCII::out0D_every                    = 128
+IOASCII::out0D_vars                     = "
+  Carpet::timing
+  PunctureTracker::pt_loc
+  QuasiLocalMeasures::qlm_scalars{out_every =128}
+"
 
 IOASCII::output_symmetry_points = no
 IOASCII::out3D_ghosts           = no
-
-# # output just at one point (0D)
-# IOASCII::out0D_every = 128
-# IOASCII::out0D_vars  = " "
-#         ADMBase::metric
-#         ADMBase::curv
-#         ADMBase::lapse
-#         ADMBase::shift
-#         WEYLSCAL4::Psi4r
-#         WEYLSCAL4::Psi4i
-#         ML_ADMConstraints::ML_Ham
-#         ML_ADMConstraints::ML_mom "
 
 IOASCII::out1D_every = 128
 IOASCII::out1D_vars  = "
         ADMBase::metric
         ADMBase::curv
         ADMBase::lapse
-        ADMBase::shift  "
+        ADMBase::shift
+"
 
 IOHDF5::use_checksums          = yes
 IOHDF5::compression_level      = 1
-IOHDF5::one_file_per_group     = yes
 
 IOHDF5::output_symmetry_points = no
 IOHDF5::out3D_ghosts           = no
@@ -528,11 +724,30 @@ IOHDF5::out2D_vars             = "
         ML_ADMConstraints::ML_Ham
         ML_ADMConstraints::ML_mom
 "
+#---------------------------------------------------------------
+#Check point 
+#---------------------------------------------------------------
 
-# for 3D HDF5 output
-IOHDF5::out3D_every            = 512
-IOHDF5::out3D_vars             = "
-        WEYLSCAL4::Psi4r "
+IOHDF5::checkpoint                  = yes
+IO::checkpoint_dir                  = @SIMULATION_NAME@
+IO::checkpoint_ID                   = yes
+IO::checkpoint_every_walltime_hours = 6.0
+IO::checkpoint_on_terminate         = yes
+
+IO::recover                         = "autoprobe"
+IO::recover_dir                     = @SIMULATION_NAME@
+
+# Formaline and TimerReport
+# -----------------------------------------------------------------------------
+ActiveThorns = "Formaline"
+ActiveThorns = "TimerReport"
+# -----------------------------------------------------------------------------
+TimerReport::out_every                  = 5120
+TimerReport::out_filename               = "TimerReport"
+TimerReport::output_all_timers_together = yes
+TimerReport::output_all_timers_readable = yes
+TimerReport::n_top_timers               = 20
+
 """
 open(re.sub(r'(.*)\.rpar$', r'\1.par', sys.argv[0]), 'w').write(re.sub(r'\n *',r'\n',Template(Template(lines).substitute(locals())).substitute(locals())))
 
