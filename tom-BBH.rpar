@@ -56,8 +56,8 @@ center_offset = xp -half_D
 
 #valores esperados para el horizonte aparente utilizada en AHFinderDirect
 #suponiendo el caso de giro maximo a=M, con a el espín del agujero negro
-ar = mp*1.0
-am = mm*1.0
+radio_ah_p = mp*1.0
+radio_ah_m = mm*1.0
 
 
 #Momentos angulares (a=chi*m**2 ):
@@ -71,7 +71,7 @@ Smz = chim*mm**2
 
 #Momentos lineales
 Ppx = Pr
-Ppy = Phi
+Ppy = Pphi
 Ppz = 0
 
 Pmx = -Ppx
@@ -105,7 +105,7 @@ outermost_detector = 100.0
 #tiempo final 
 final_time = waveform_length + outermost_detector
 #tiempo para buscar el horizonte aparente del agujero negro resultante
-$find_ah = expected_merger-200
+find_ah = expected_merger-200
 
 
 #Se almacenan las variables para despues modificar el archivo
@@ -172,25 +172,27 @@ ActiveThorns = "SphericalSurface "
 #Se le especifica a Carpet que utilizara coordbase para definir la extension
 
 Carpet::domain_from_coordbase           = "yes" 
-CartGrid3D::type                        = "coordbase"
+CartGrid3D::type                        = "Coordbase"
 CartGrid3D::domain                      = "full"
 CartGrid3D::avoid_origin                = "no"
 
 
 #El tamaño del dominio computacional esta en función del valor maximo y minimo 
-CoordBase::damainsize                   = "minmax"
+CoordBase::domainsize                   = "minmax"
 
 #Espaciamiento de la malla 
 CoordBase::spacing                      = "gridspacing"
 
 #Valores maximos y minimos en cada coordenada
+CoordBase::xmin                         = -$extension
+CoordBase::ymin                         = -$extension
+CoordBase::zmin                         = 0.0
+
 CoordBase::xmax                         = $extension
 CoordBase::ymax                         = $extension
 CoordBase::zmax                         = $extension
 
-CoordBase::xmin                         = -$extension
-CoordBase::ymin                         = -$extension
-CoordBase::zmin                         = 0.0
+
 
 #Tamaño del espaciamiento 
 CoordBase::dx                           = $dr
@@ -200,14 +202,15 @@ CoordBase::dz                           = $dr
 #Cantidad de puntos en la frontera:
 
 #Parte inferior
-CoordBase::boundary_size_lower_x        = 3  
-CoordBase::boundary_size_lower_y        = 3
-CoordBase::boundary_size_lower_z        = 3
+
+CoordBase::boundary_size_x_lower        = 3  
+CoordBase::boundary_size_y_lower        = 3
+CoordBase::boundary_size_z_lower        = 3
 
 #Parte superior
-CoordBase::boundary_size_upper_x        = 3
-CoordBase::boundary_size_upper_y        = 3
-CoordBase::boundary_size_upper_z        = 3
+CoordBase::boundary_size_x_upper        = 3
+CoordBase::boundary_size_y_upper        = 3
+CoordBase::boundary_size_z_upper        = 3
 
 #Simetrías
 #Hacemos una reflección en el eje z
@@ -224,8 +227,7 @@ ReflectionSymmetry::avoid_origin_x      = "no"
 # Configuración de Carpet:
 #--------------------------------------------------------------------------------
 
-# No habilitar almacenamiento para todas las funciones de malla
-Carpet::enable_all_storge               = "no"
+
 
 # No incluir barras entre elementos programados 
 Carpet::schedule_barriers               = "no"
@@ -249,15 +251,16 @@ Carpet::init_3_timelevels               = "no"
 Carpet::poison_new_timelevels           = "yes"
 Carpet::check_for_poison                = "no" 
 
-CarpetLib::poison_memory                = "yes"
+CarpetLib::poison_new_memory            = "yes"
 CarpetLib::poison_value                 = 114
 
-CarpetLib::output_bbboxes               = "no"
+
 CarpetLib::interleave_communications    = "yes"
 CarpetLib::combine_sends                = "yes"
 
 CarpetRegrid2::freeze_unaligned_levels  = "yes"
-CarperRegrid2::symmetry_rotating180     = "yes"
+CarpetRegrid2::symmetry_rotating180    = yes
+
 
 
 #--------------------------------------------------------------------------------
@@ -270,10 +273,10 @@ Carpet::max_refinement_levels           = 10
 Carpet::time_refinement_factors         = "[1,2,4,8,16,32,64,128,256,512]"
 
 #De acuerdo a 2**(max_refinament_levels-2)
-CarpetRigrid2::regrid_every             = 32 
+CarpetRegrid2::regrid_every             = 32 
 
 #Refinamientos espaciales
-CarpetRigrid2::num_centres              = 2
+CarpetRegrid2::num_centres              = 2
 
 CarpetRegrid2::num_levels_1             = 7
 CarpetRegrid2::position_x_1             = $xp
@@ -311,7 +314,7 @@ CarpetMask::excluded_surface_factor[2]  = 1.0
 #--------------------------------------------------------------------------------
 # Superficie esfericas
 #--------------------------------------------------------------------------------
-SphericalSurface::nsurface              = 5
+SphericalSurface::nsurfaces             = 5
 SphericalSurface::maxntheta             = 39
 SphericalSurface::maxnphi               = 76
 
@@ -339,12 +342,12 @@ SphericalSurface::nghostsphi        [4] = 2
 # Condiciones de Tiempo:
 #------------------------------------------------------------------------------
 #Thorns necesarias 
-ActiveThornes = "Time TerminationTrigger"
+ActiveThorns = "Time TerminationTrigger"
 #------------------------------------------------------------------------------
 
 #Pasos temporales:
 time::timestep_method                   = "courant_static"
-time::dtfac                             = $dt
+time::dtfac                             = $dt0
 
 #Revisar 
 # Maximo tiempo de la simulación(en horas):
@@ -358,11 +361,13 @@ time::dtfac                             = $dt
 #------------------------------------------------------------------------------
 # Thorns necesarias
 ActiveThorns = "ADMCoupling ADMMacros CoordGauge SpaceMask StaticConformal TmunuBase"
+ActiveThorns = "ADMBase"
 ActiveThorns = "TwoPunctures"
 #-------------------------------------------------------------------------------
 # ADM
 #-------------------------------------------------------------------------------
-InitBase::                              = "init_all_levels"
+
+InitBase::initial_data_setup_method     = "init_all_levels"
 ADMMacros::spatial_order                = 4
 
 ADMBase::metric_type                    = "physical"
@@ -388,13 +393,14 @@ TwoPunctures::center_offset[0]          = $center_offset
 TwoPunctures::target_M_plus             = $mp
 TwoPunctures::par_m_plus                = $mp
 #Momento lineal
-TwoPunctures::par_P_plus [1]            = $Ppx  
-TwoPunctures::par_P_plus [2]            = $Ppy
-TwoPunctures::par_P_plus [3]            = $Ppz
+TwoPunctures::par_P_plus [0]            = $Ppx  
+TwoPunctures::par_P_plus [1]            = $Ppy
+TwoPunctures::par_P_plus [2]            = $Ppz
+
 #Momento angular
-TwoPunctures::par_S_plus [1]            = $Spx
-TwoPunctures::par_S_plus [2]            = $Spy
-TwoPunctures::par_S_plus [3]            = $Spz
+TwoPunctures::par_S_plus [0]            = $Spx
+TwoPunctures::par_S_plus [1]            = $Spy
+TwoPunctures::par_S_plus [2]            = $Spz
   
 
 #Descripción del agujero negro con masa menor:
@@ -402,13 +408,13 @@ TwoPunctures::par_S_plus [3]            = $Spz
 TwoPunctures::target_M_minus            = $mm
 TwoPunctures::par_m_minus               = $mm
 #Momento lineal
-TwoPunctures::par_P_minus [1]           = $Pmx
-TwoPunctures::par_P_minus [2]           = $Pmy
-TwoPunctures::par_P_minus [3]           = $Pmz
+TwoPunctures::par_P_minus [0]           = $Pmx
+TwoPunctures::par_P_minus [1]           = $Pmy
+TwoPunctures::par_P_minus [2]           = $Pmz
 #Momento angular 
-TwoPunctures::par_S_minus [1]           = $Smx
-TwoPunctures::par_S_minus [2]           = $Smy 
-TwoPunctures::par_S_minus [3]           = $Smz
+TwoPunctures::par_S_minus [0]           = $Smx
+TwoPunctures::par_S_minus [1]           = $Smy 
+TwoPunctures::par_S_minus [2]           = $Smz
 
 # Un valor pequeño para suavizar las singularidades en los lugares de los pinchazos  
 TwoPunctures::TP_epsilon                = 1e-6
@@ -426,7 +432,7 @@ TwoPunctures::grid_setup_method         = "evaluation"
 #-------------------------------------------------------------------------------------------------
 #Evolucionar variables ADM
 ActiveThorns = "ML_BSSN ML_BSSN_Helper NewRad"
-
+ActiveThorns = "ML_ADMConstraints"
 #Seguimiento de Punturas
 ActiveThorns = "CarpetTracker"
 ActiveThorns = "PunctureTracker"
@@ -457,7 +463,8 @@ ML_BSSN::ShiftAdvectionCoeff            = 1.0
 
 ML_BSSN::MinimumLapse                   = 1.0e-8
 
-ML_BSSN::my_initial_boundary_condition  = " extrapolate - gammas "
+ML_BSSN::my_initial_boundary_condition  = "extrapolate-gammas"
+
 ML_BSSN::my_rhs_boundary_condition      = "NewRad"
 Boundary :: radpower                    = 2
 
@@ -557,8 +564,7 @@ Multipole::l_max                         = 4
 #configuraciones:
 AHFinderDirect::find_every                 = 128
 AHFinderDirect::output_h_every             = 0
-AHFinderDirect::verbose_level              = "Physical details"
-AHFinderDirect::move_origins               = "yes"
+AHFinderDirect::verbose_level              = "physics details"
 
 AHFinderDirect::move_origins            = "yes"
 AHFinderDirect::reshape_while_moving    = "yes"
@@ -575,7 +581,7 @@ AHFinderDirect::N_horizons = 3
 
 AHFinderDirect::origin_x                             [1] = $xp
 AHFinderDirect::initial_guess__coord_sphere__x_center[1] = $xp
-AHFinderDirect::initial_guess__coord_sphere__radius  [1] = $rp
+AHFinderDirect::initial_guess__coord_sphere__radius  [1] = $radio_ah_p
 AHFinderDirect::which_surface_to_store_info          [1] = 2
 AHFinderDirect::set_mask_for_individual_horizon      [1] = no
 AHFinderDirect::reset_horizon_after_not_finding      [1] = no
@@ -587,7 +593,7 @@ AHFinderDirect::max_allowable_horizon_radius         [1] = 3
 
 AHFinderDirect::origin_x                             [2] = $xm
 AHFinderDirect::initial_guess__coord_sphere__x_center[2] = $xm
-AHFinderDirect::initial_guess__coord_sphere__radius  [2] = $rm
+AHFinderDirect::initial_guess__coord_sphere__radius  [2] = $radio_ah_p
 AHFinderDirect::which_surface_to_store_info          [2] = 3
 AHFinderDirect::set_mask_for_individual_horizon      [2] = no
 AHFinderDirect::reset_horizon_after_not_finding      [2] = no
@@ -614,7 +620,7 @@ AHFinderDirect::max_allowable_horizon_radius         [3] = 6
 ActiveThorns = "NaNChecker"
 #--------------------------------------------------------------------------------
 NaNChecker::check_every                 = 512
-NaNChecker::action_if_found             = "termination"
+NaNChecker::action_if_found             = "terminate"
 NaNChecker::verbose                     = "all"
 NaNChecker::check_vars                  = "
 					ADMBase::metric
@@ -658,7 +664,6 @@ SphericalSurface::verbose               = "yes"
 TwoPunctures::verbose                   = "yes"
 PunctureTracker::verbose                = "yes"
 
-
 #------------------------------------------------------------------------------
 # Datos de salida:
 #------------------------------------------------------------------------------
@@ -683,7 +688,7 @@ IOBasic::outInfo_vars           = "
         ML_ADMConstraints::H
 "
 
-IOScalar::one_file_per_group    = yes
+
 IOScalar::outScalar_every       = 128
 IOScalar::outScalar_vars        = "
         ADMBase::lapse
