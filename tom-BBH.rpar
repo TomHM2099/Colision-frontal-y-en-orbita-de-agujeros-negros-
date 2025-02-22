@@ -158,7 +158,7 @@ ActiveThorns = "Boundary CartGrid3D CoordBase"
 
 #Permiten definir simetrías en el dominio computacional
 ActiveThorns = " ReflectionSymmetry SymBase"
-ActiveThorns = "RotatingSymmetry180"
+#ActiveThorns = "RotatingSymmetry180"
 
 #Permiten definir los métodos AMR
 ActiveThorns = "CarpetRegrid2"
@@ -211,6 +211,11 @@ CoordBase::boundary_size_z_lower        = 3
 CoordBase::boundary_size_x_upper        = 3
 CoordBase::boundary_size_y_upper        = 3
 CoordBase::boundary_size_z_upper        = 3
+
+# Informacion de las fronteras 
+CoordBase::boundary_shiftout_x_lower    = 0
+CoordBase::boundary_shiftout_y_lower    = 0
+CoordBase::boundary_shiftout_z_lower    = 1
 
 #Simetrías
 #Hacemos una reflección en el eje z
