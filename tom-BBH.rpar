@@ -20,23 +20,22 @@ M    =  1.0                    # Masa total (En unidades donde M_tot=1)
 #momentos angulares(colision frontal):
 chip = 0.0
 chim = 0.0
+# momentos lineales (Colision frontal)
+Pr   = 0.0
+Pphi = 0.0
 
 # momentos angulares(colison orbital):
-chip =  0.31 #0.0                  # Componente z del vector sin espín para mp 
-chim = -0.46 #0.0                  # Componente z del vector sin espín para mm
-
-# momentos lineales (Colision frontal)
-#Pr   = 0.0
-#Pphi = 0.0
-
+#chip =  0.31 #0.0                  # Componente z del vector sin espín para mp 
+#chim = -0.46 #0.0                  # Componente z del vector sin espín para mm
 # momentos lineales (Colosion en orbita):
-Pr   = -0.00084541526517121;   # Momento lineal radial
-Pphi =  0.09530152296974252;   #Momento angular 
+#Pr   = -0.00084541526517121;   # Momento lineal radial
+#Pphi =  0.09530152296974252;   #Momento angular 
 
 
 #------------------------------------------------------------------------------
 #  Distancia entre masas (en masas solares 1 M = 1476.66 m = 1.476 km ) 
-D = 10.0 
+#D = 10.0 
+D = 6.0
 #-----------------------------------------------------------------------------------
 # Valores reescalados del sistema
 #----------------------------------------------------------------------------------------
@@ -81,13 +80,16 @@ Pmz = -Ppz
 # Datos de la malla:
 #-------------------------------------------------------------------------------
 #Espaciado de la malla:
-dr = 2.0
+#dr = 2.0
+#Simulacion con menos recursos:
+dr = 0.4
 
 #Factor de Courant 
-dt0 = 0.50
+dt0 = 0.25
  
 #extensión de la malla
-extension = 120.0
+#extension = 120.0
+extension = 12.0
 
 #--------------------------------------------------------------------------------
 # Valores temporales:
@@ -95,17 +97,31 @@ extension = 120.0
 #   Tiempo total de colisión (en masa solares 1 M = 4.925e−6 s)
 
 # tiempo esperado de la fusión, en el caso orbital 
-expected_merger = 1000.0
+#expected_merger = 1000.0
+expected_merger = 100.0
+
 #tiempo despues de la fusión:
-time_after_merger = 200
+#time_after_merger = 200
+time_after_merger = 20
+
 #tamaño de la onda
 waveform_length = expected_merger + time_after_merger
+
 # detector más alejado 
-outermost_detector = 100.0
+#outermost_detector = 100.0
+outermost_detector = 10.0
 #tiempo final 
 final_time = waveform_length + outermost_detector
 #tiempo para buscar el horizonte aparente del agujero negro resultante
-find_ah = expected_merger-200
+#find_ah = expected_merger-200
+find_ah = expected_merger-20
+
+#Configuracion de los refinamientos 
+numero_r = 7 #6
+
+
+
+
 
 
 #Se almacenan las variables para despues modificar el archivo
@@ -283,27 +299,46 @@ CarpetRegrid2::regrid_every             = 32
 #Refinamientos espaciales
 CarpetRegrid2::num_centres              = 2
 
-CarpetRegrid2::num_levels_1             = 7
+#CarpetRegrid2::num_levels_1             = $numero_r
+#CarpetRegrid2::position_x_1             = $xp
+#CarpetRegrid2::radius_1[ 1]             = 64.0
+#CarpetRegrid2::radius_1[ 2]             = 16.0
+#CarpetRegrid2::radius_1[ 3]             = 8.0
+#CarpetRegrid2::radius_1[ 4]             = 4.0
+#CarpetRegrid2::radius_1[ 5]             = 2.0
+#CarpetRegrid2::radius_1[ 6]             = 1.0
+#CarpetRegrid2::movement_threshold_1     =   0.16
+
+#simulaciones con menos recursos 
+CarpetRegrid2::num_levels_1             = $numero_r
 CarpetRegrid2::position_x_1             = $xp
-CarpetRegrid2::radius_1[ 1]             =  64.0
-CarpetRegrid2::radius_1[ 2]             =  16.0
-CarpetRegrid2::radius_1[ 3]             =   8.0
-CarpetRegrid2::radius_1[ 4]             =   4.0
-CarpetRegrid2::radius_1[ 5]             =   2.0
-CarpetRegrid2::radius_1[ 6]             =   1.0
+CarpetRegrid2::radius_1[ 1]             =   2.8 #64.0
+CarpetRegrid2::radius_1[ 2]             =   2.0 #16.0
+CarpetRegrid2::radius_1[ 3]             =   1.2 #8.0
+CarpetRegrid2::radius_1[ 4]             =   0.6 #4.0
+CarpetRegrid2::radius_1[ 5]             =   0.3 #2.0
 CarpetRegrid2::movement_threshold_1     =   0.16
 
 
-CarpetRegrid2::num_levels_2             = 7
-CarpetRegrid2::position_x_2             = $xm
-CarpetRegrid2::radius_2[ 1]             =  64.0
-CarpetRegrid2::radius_2[ 2]             =  16.0
-CarpetRegrid2::radius_2[ 3]             =   8.0
-CarpetRegrid2::radius_2[ 4]             =   4.0
-CarpetRegrid2::radius_2[ 5]             =   2.0
-CarpetRegrid2::radius_2[ 6]             =   1.0
-CarpetRegrid2::movement_threshold_2     =   0.16
+#CarpetRegrid2::num_levels_2             = $numero_r
+#CarpetRegrid2::position_x_2             = $xm
+#CarpetRegrid2::radius_2[ 1]             = 64.0
+#CarpetRegrid2::radius_2[ 2]             = 16.0
+#CarpetRegrid2::radius_2[ 3]             = 8.0
+#CarpetRegrid2::radius_2[ 4]             = 4.0
+#CarpetRegrid2::radius_2[ 5]             = 2.0
+#CarpetRegrid2::radius_2[ 6]             = 1.0
 
+
+#simulaciones con menos recursos 
+CarpetRegrid2::num_levels_2             = $numero_r
+CarpetRegrid2::position_x_2             = $xm
+CarpetRegrid2::radius_2[ 1]             =   2.8 
+CarpetRegrid2::radius_2[ 2]             =   2.0 
+CarpetRegrid2::radius_2[ 3]             =   1.2 
+CarpetRegrid2::radius_2[ 4]             =   0.6 
+CarpetRegrid2::radius_2[ 5]             =   0.3 
+CarpetRegrid2::movement_threshold_2     =   0.16
 
 #Excluir el interior 
 
@@ -460,17 +495,24 @@ ADMBase::dtshift_evolution_method       = "ML_BSSN"
 
 ML_BSSN::harmonicN                      = 1     #1+log
 ML_BSSN::harmonicF                      = 2.0   #1+log
-ML_BSSN::LapseAdvectionCoeff            = 1.0
+
+#ML_BSSN::LapseAdvectionCoeff            = 1.0
+ML_BSSN::advectLapse                    = 1
 
 ML_BSSN::ShiftGammaCoeff                = 0.75
 ML_BSSN::BetaDriver                     = 1.0   
-ML_BSSN::ShiftAdvectionCoeff            = 1.0   
+
+#ML_BSSN::ShiftAdvectionCoeff            = 1.0   
+ML_BSSN::advectShift                    = 1
 
 ML_BSSN::MinimumLapse                   = 1.0e-8
 
-ML_BSSN::my_initial_boundary_condition  = "extrapolate-gammas"
+#ML_BSSN::my_initial_boundary_condition  = "extrapolate-gammas"
+ML_BSSN::initial_boundary_condition     ="extrapolate-gammas" 
 
-ML_BSSN::my_rhs_boundary_condition      = "NewRad"
+#ML_BSSN::my_rhs_boundary_condition      = "NewRad"
+ML_BSSN::rhs_boundary_condition         = "NewRad"
+
 Boundary :: radpower                    = 2
 
 #Se utiliza el método de lineas con un integrador de Runge-Kutta de 4to orden 
@@ -516,7 +558,9 @@ SummationByParts::order                 = 4
 #--------------------------------------------------------------------------------
 # Espinas necesarias:
 #--------------------------------------------------------------------------------
-ActiveThorns = "AHFinderDirect QuasiLocalMeasures WeylScal4 Multipole"
+ActiveThorns = "AHFinderDirect WeylScal4 Multipole"
+ActiveThorns = "QuasiLocalMeasures"
+
 #--------------------------------------------------------------------------------
 
 #Valores Cuasilocales (masa,momentos lineales y angulares)
@@ -550,9 +594,9 @@ Multipole::nradii                        = 3
 Multipole::out_every                     = 128
 
 #Radios de los detectores 
-Multipole::radius[0]                     = 60
-Multipole::radius[1]                     = 80
-Multipole::radius[2]                     = 100
+Multipole::radius[0]                     = 6.0 #60
+Multipole::radius[1]                     = 8.0 #80
+Multipole::radius[2]                     = 10.0 #100
 
 #configuraciones de angulos 
 Multipole::ntheta                        = 120
@@ -703,7 +747,7 @@ IOASCII::out0D_every                    = 128
 IOASCII::out0D_vars                     = "
   Carpet::timing
   PunctureTracker::pt_loc
-  QuasiLocalMeasures::qlm_scalars{out_every =128}
+ QuasiLocalMeasures::qlm_scalars{out_every =128}
 "
 
 IOASCII::output_symmetry_points = no
@@ -752,7 +796,7 @@ IO::recover_dir                     = @SIMULATION_NAME@
 ActiveThorns = "Formaline"
 ActiveThorns = "TimerReport"
 # -----------------------------------------------------------------------------
-TimerReport::out_every                  = 5120
+TimerReport::out_every                  = 512
 TimerReport::out_filename               = "TimerReport"
 TimerReport::output_all_timers_together = yes
 TimerReport::output_all_timers_readable = yes
